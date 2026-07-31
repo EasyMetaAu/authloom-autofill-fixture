@@ -14,11 +14,16 @@ const root = path.dirname(new URL(import.meta.url).pathname);
 const html = fs.readFileSync(path.join(root, 'index.html'));
 assert(!html.includes('authloom-synthetic-password'));
 
-const server = http.createServer((request, response) => {
-  response.writeHead(request.url === '/' ? 200 : 404, { 'Content-Type': 'text/html; charset=utf-8' });
-  response.end(request.url === '/' ? html : 'not found');
-});
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+let server;
+let fixtureURL = process.env.AUTHLOOM_FIXTURE_URL;
+if (!fixtureURL) {
+  server = http.createServer((request, response) => {
+    response.writeHead(request.url === '/' ? 200 : 404, { 'Content-Type': 'text/html; charset=utf-8' });
+    response.end(request.url === '/' ? html : 'not found');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  fixtureURL = `http://127.0.0.1:${server.address().port}/`;
+}
 
 const browser = await chromium.launch({
   executablePath: process.env.AUTHLOOM_CHROMIUM_EXECUTABLE ?? '/Applications/Chromium.app/Contents/MacOS/Chromium',
@@ -26,7 +31,7 @@ const browser = await chromium.launch({
 });
 try {
   const page = await browser.newPage();
-  await page.goto(`http://127.0.0.1:${server.address().port}/`);
+  await page.goto(fixtureURL);
   assert.equal(await page.locator('meta[name="authloom-fixture-version"]').getAttribute('content'), '1');
 
   const runID = await page.locator('#run-id').textContent();
@@ -44,5 +49,5 @@ try {
   assert.notEqual(await page.locator('#run-id').textContent(), runID);
 } finally {
   await browser.close();
-  await new Promise(resolve => server.close(resolve));
+  if (server) await new Promise(resolve => server.close(resolve));
 }
