@@ -2,13 +2,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import http from 'node:http';
-import { createRequire } from 'node:module';
 import path from 'node:path';
-
-const require = createRequire(import.meta.url);
-const nodeModules = process.env.AUTHLOOM_NODE_MODULES;
-assert(nodeModules, 'AUTHLOOM_NODE_MODULES must point to a node_modules directory containing playwright');
-const { chromium } = require(path.join(nodeModules, 'playwright'));
+import { chromium } from 'playwright-core';
 
 const root = path.dirname(new URL(import.meta.url).pathname);
 const html = fs.readFileSync(path.join(root, 'index.html'));

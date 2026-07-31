@@ -1,0 +1,14 @@
+{
+  "name": "authloom-autofill-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "verify": "node verify-fixture.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "playwright-core": "1.61.1"
+  }
+}
