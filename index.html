@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="authloom-fixture-version" content="1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-authloom-fixture'; style-src 'nonce-authloom-fixture'; form-action 'none'; base-uri 'none'">
+<title>Authloom AutoFill Fixture</title>
+<style nonce="authloom-fixture">
+  body { font: 17px system-ui; margin: 2rem auto; max-width: 32rem; padding: 0 1rem; }
+  label, input, button { display: block; margin-top: 1rem; width: 100%; }
+  input, button { box-sizing: border-box; font: inherit; padding: .7rem; }
+  code { overflow-wrap: anywhere; }
+</style>
+<body>
+  <main>
+    <h1>Authloom AutoFill Fixture</h1>
+    <p>Synthetic test only. Run ID: <code id="run-id"></code></p>
+    <form id="login">
+      <label>Username
+        <input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false">
+      </label>
+      <label>Password
+        <input id="password" name="password" type="password" autocomplete="current-password">
+      </label>
+      <button type="submit">Verify fill</button>
+    </form>
+    <p id="result" role="status">AUTHLOOM_AUTOFILL_READY</p>
+    <button id="reset" type="button">New synthetic run</button>
+  </main>
+  <script nonce="authloom-fixture">
+    const encoder = new TextEncoder();
+    const form = document.querySelector('#login');
+    const username = document.querySelector('#username');
+    const password = document.querySelector('#password');
+    const runID = document.querySelector('#run-id');
+    const result = document.querySelector('#result');
+    let checking = false;
+
+    const base64url = bytes => btoa(String.fromCharCode(...bytes))
+      .replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+
+    async function expected(id) {
+      const digest = await crypto.subtle.digest('SHA-256', encoder.encode(`authloom-f0i:${id}`));
+      return {
+        user: `authloom+${id}@example.test`,
+        password: `A1!${base64url(new Uint8Array(digest)).slice(0, 24)}`,
+      };
+    }
+
+    function scrub() {
+      username.value = '';
+      password.value = '';
+    }
+
+    function start() {
+      scrub();
+      runID.textContent = crypto.randomUUID();
+      result.textContent = 'AUTHLOOM_AUTOFILL_READY';
+    }
+
+    async function verify() {
+      if (checking || (!username.value && !password.value)) return;
+      checking = true;
+      const wanted = await expected(runID.textContent);
+      const userOK = username.value === wanted.user;
+      const passwordOK = password.value === wanted.password;
+      result.textContent = userOK && passwordOK
+        ? `AUTHLOOM_AUTOFILL_OK:${runID.textContent}`
+        : userOK
+          ? 'AUTHLOOM_AUTOFILL_PASSWORD_REJECTED'
+          : passwordOK
+            ? 'AUTHLOOM_AUTOFILL_USERNAME_REJECTED'
+            : 'AUTHLOOM_AUTOFILL_BOTH_REJECTED';
+      if (userOK && passwordOK) setTimeout(() => {
+        scrub();
+        result.textContent = 'AUTHLOOM_AUTOFILL_SCRUBBED';
+      }, 750);
+      checking = false;
+    }
+
+    form.addEventListener('submit', event => { event.preventDefault(); verify(); });
+    document.querySelector('#reset').addEventListener('click', start);
+    setInterval(verify, 200);
+    start();
+  </script>
+</body>
+</html>
