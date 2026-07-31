@@ -35,6 +35,10 @@
     const password = document.querySelector('#password');
     const runID = document.querySelector('#run-id');
     const result = document.querySelector('#result');
+    const requested = new URL(location.href).searchParams.get('run');
+    let requestedRunID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(requested ?? '')
+      ? requested
+      : null;
     let checking = false;
 
     const base64url = bytes => btoa(String.fromCharCode(...bytes))
@@ -55,7 +59,8 @@
 
     function start() {
       scrub();
-      runID.textContent = crypto.randomUUID();
+      runID.textContent = requestedRunID ?? crypto.randomUUID();
+      requestedRunID = null;
       result.textContent = 'AUTHLOOM_AUTOFILL_READY';
     }
 
